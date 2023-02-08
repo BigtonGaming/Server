@@ -102,8 +102,6 @@ MySQLRequestResult DBcore::QueryDatabase(const char *query, uint32 querylen, boo
 		Open();
 	}
 
-
-
 	// request query. != 0 indicates some kind of error.
 	if (mysql_real_query(&mysql, query, querylen) != 0) {
 		unsigned int errorNumber = mysql_errno(&mysql);
@@ -141,8 +139,8 @@ MySQLRequestResult DBcore::QueryDatabase(const char *query, uint32 querylen, boo
 		/**
 		 * Error logging
 		 */
-		if (mysql_errno(&mysql) > 0 && strlen(query) > 0) {
-			LogMySQLError("[{}] [{}]\n[{}]", mysql_errno(&mysql), mysql_error(&mysql), query);
+		if (mysql_errno(&mysql) > 0 && strlen(query) > 0 && mysql_errno(&mysql) != 1065) {
+			LogMySQLError("[{}] [{}] Query [{}]", mysql_errno(&mysql), mysql_error(&mysql), query);
 		}
 
 		return MySQLRequestResult(nullptr, 0, 0, 0, 0, mysql_errno(&mysql), errorBuffer);
