@@ -56,7 +56,7 @@ void WorldserverCLI::DatabaseDump(int argc, char **argv, argh::parser &cmd, std:
 	s->SetDumpDropTableSyntaxOnly(cmd[{"--drop-table-syntax-only"}]);
 
 	/**
-	 * Dump
+	 * DatabaseDump
 	 */
-	s->Dump();
+	s->DatabaseDump();
 }

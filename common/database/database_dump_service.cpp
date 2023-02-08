@@ -199,7 +199,7 @@ std::string DatabaseDumpService::GetDumpFileNameWithPath()
 	return GetSetDumpPath() + GetDumpFileName();
 }
 
-void DatabaseDumpService::Dump()
+void DatabaseDumpService::DatabaseDump()
 {
 	if (!IsMySQLInstalled()) {
 		LogError("MySQL is not installed; Please check your PATH for a valid MySQL installation");
@@ -357,6 +357,12 @@ void DatabaseDumpService::Dump()
 			else {
 				LogInfo("Compression requested, but no available compression binary was found");
 			}
+
+			std::string sql_file = fmt::format("{}.sql", GetDumpFileNameWithPath());
+			if (File::Exists(sql_file)) {
+				std::filesystem::remove(sql_file);
+			}
+
 		}
 		else {
 			LogWarning("Compression requested but binary not found... Skipping...");
