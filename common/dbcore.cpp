@@ -22,6 +22,7 @@
 #else
 
 #include "unix.h"
+#include "strings.h"
 #include <pthread.h>
 
 #endif
@@ -136,11 +137,12 @@ MySQLRequestResult DBcore::QueryDatabase(const char *query, uint32 querylen, boo
 		auto errorBuffer = new char[MYSQL_ERRMSG_SIZE];
 		snprintf(errorBuffer, MYSQL_ERRMSG_SIZE, "#%i: %s", mysql_errno(&mysql), mysql_error(&mysql));
 
-		/**
-		 * Error logging
-		 */
+		// error logging
 		if (mysql_errno(&mysql) > 0 && strlen(query) > 0 && mysql_errno(&mysql) != 1065) {
-			LogMySQLError("[{}] [{}] Query [{}]", mysql_errno(&mysql), mysql_error(&mysql), query);
+			std::string error_raw   = fmt::format("{}", mysql_error(&mysql));
+			std::string mysql_err   = Strings::Trim(error_raw);
+			std::string clean_query = Strings::Replace(query, "\n", "");
+			LogMySQLError("[{}] ({}) query [{}]", mysql_err, mysql_errno(&mysql), clean_query);
 		}
 
 		return MySQLRequestResult(nullptr, 0, 0, 0, 0, mysql_errno(&mysql), errorBuffer);
