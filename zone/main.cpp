@@ -89,6 +89,7 @@ extern volatile bool is_zone_loaded;
 #include "zone_event_scheduler.h"
 #include "../common/file.h"
 #include "../common/path_manager.h"
+#include "../common/database/database_update.h"
 
 EntityList  entity_list;
 WorldServer worldserver;
@@ -107,6 +108,7 @@ EQEmuLogSys           LogSys;
 ZoneEventScheduler    event_scheduler;
 WorldContentService   content_service;
 PathManager           path;
+DatabaseUpdate        database_update;
 
 const SPDat_Spell_Struct* spells;
 int32 SPDAT_RECORDS = -1;
@@ -259,12 +261,40 @@ int main(int argc, char** argv) {
 		content_db.SetMysql(database.getMySQL());
 	}
 
+	//rules:
+	{
+		std::string tmp;
+		if (database.GetVariable("RuleSet", tmp)) {
+			LogInfo("Loading rule set [{}]", tmp.c_str());
+			if (!RuleManager::Instance()->LoadRules(&database, tmp.c_str(), false)) {
+				LogError("Failed to load ruleset [{}], falling back to defaults", tmp.c_str());
+			}
+		}
+		else {
+			if (!RuleManager::Instance()->LoadRules(&database, "default", false)) {
+				LogInfo("No rule set configured, using default rules");
+			}
+		}
+
+		EQ::InitializeDynamicLookups();
+	}
+
 	/* Register Log System and Settings */
 	LogSys.SetDatabase(&database)
 		->SetLogPath(path.GetLogPath())
 		->LoadLogDatabaseSettings()
 		->SetGMSayHandler(&Zone::GMSayHookCallBackProcess)
 		->StartFileLogs();
+
+	const auto c = EQEmuConfig::get();
+	if (c->auto_database_updates) {
+		if (database_update.SetDatabase(&database)->HasPendingUpdates()) {
+			LogWarning("Database is not up to date [world] needs to be ran to apply updates, shutting down in 5 seconds");
+			std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+			LogInfo("Exiting due to pending database updates");
+			std::exit(0);
+		}
+	}
 
 	/* Guilds */
 	guild_mgr.SetDatabase(&database);
@@ -364,24 +394,6 @@ int main(int argc, char** argv) {
 	}
 	else {
 		LogInfo("Loaded [{}] commands loaded", Strings::Commify(std::to_string(retval)));
-	}
-
-	//rules:
-	{
-		std::string tmp;
-		if (database.GetVariable("RuleSet", tmp)) {
-			LogInfo("Loading rule set [{}]", tmp.c_str());
-			if (!RuleManager::Instance()->LoadRules(&database, tmp.c_str(), false)) {
-				LogError("Failed to load ruleset [{}], falling back to defaults", tmp.c_str());
-			}
-		}
-		else {
-			if (!RuleManager::Instance()->LoadRules(&database, "default", false)) {
-				LogInfo("No rule set configured, using default rules");
-			}
-		}
-
-		EQ::InitializeDynamicLookups();
 	}
 
 	content_service.SetDatabase(&database)

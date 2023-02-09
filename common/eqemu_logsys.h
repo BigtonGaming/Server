@@ -372,6 +372,8 @@ public:
 	[[nodiscard]] const std::string &GetLogPath() const;
 	EQEmuLogSys * SetLogPath(const std::string &log_path);
 
+	void DisableMySQLErrorLogs();
+	void EnableMySQLErrorLogs();
 private:
 
 	// reference to database
